@@ -2,7 +2,7 @@ from pathlib import Path
 from pymediainfo import MediaInfo
 from typing import Union
 
-from qpf_creator.qpf_exceptions import (
+from auto_qpf.qpf_exceptions import (
     ImproperChapterError,
     NoChapterDataError,
     ChapterIndexError,
