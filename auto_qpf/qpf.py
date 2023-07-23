@@ -1,7 +1,9 @@
 from pathlib import Path
 from pymediainfo import MediaInfo
 from typing import Union
+import platform
 
+from auto_qpf.long_path import check_for_long_path
 from auto_qpf.qpf_exceptions import (
     ImproperChapterError,
     NoChapterDataError,
@@ -35,6 +37,14 @@ class QpfGenerator:
             auto_detect_fps (bool, optional): Auto detects non text based sources if a video track is present.
             Defaults to True.
         """
+        # check if we're on a windows platform, if so check for long path support
+        if platform.system() == "Windows":
+            long_path = check_for_long_path()
+            if not long_path:
+                print(
+                    "WARNING: Long path is not enabled for this OS. This can cause issues for paths greater > 260 characters."
+                )
+
         # convert file_input to Path object
         file_input = Path(file_input)
 
