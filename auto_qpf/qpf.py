@@ -68,7 +68,9 @@ class QpfGenerator:
                 file_input = ChapterGenerator().generate_ogm_chapters(
                     media_info_obj=media_info,
                     extract_tagged=False,
-                    output_path=file_output.with_suffix(".txt"),
+                    output_path=file_output.with_name(
+                        file_output.stem + "_chapters"
+                    ).with_suffix(".qpf"),
                 )
                 time_codes = self._get_time_codes_text(file_input)
             else:
