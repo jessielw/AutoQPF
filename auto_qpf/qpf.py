@@ -63,14 +63,15 @@ class QpfGenerator:
         else:
             media_info = MediaInfo.parse(file_input, parse_speed=0.1)
             detect_fps = self._get_fps(media_info)
-
+            
             if generate_chapters:
+                # generate new output with _chapters before the extension for txt files
+                txt_output = file_output.with_suffix("").with_name(file_output.stem + "_chapters.txt")
+                
                 file_input = ChapterGenerator().generate_ogm_chapters(
                     media_info_obj=media_info,
                     extract_tagged=False,
-                    output_path=file_output.with_name(
-                        file_output.stem + "_chapters"
-                    ).with_suffix(".qpf"),
+                    output_path=txt_output,
                 )
                 time_codes = self._get_time_codes_text(file_input)
             else:
@@ -128,7 +129,7 @@ class QpfGenerator:
 
     @staticmethod
     def _auto_output(file_input: Path):
-        return file_input.parent / Path(file_input.name).with_suffix(".qpf")
+        return Path(file_input.parent / Path(file_input.name).with_suffix(".qpf"))
 
     @staticmethod
     def _get_time_codes_text(file_input: Path):
