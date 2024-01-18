@@ -79,7 +79,7 @@ from pymediainfo import MediaInfo
 
 parse = MediaInfo.parse(r"file_input.mkv")
 
-test = ChapterGenerator.generate_ogm_chapters(media_info_obj=parse, output_path="chapter.txt")
+test = ChapterGenerator().generate_ogm_chapters(media_info_obj=parse, output_path="chapter.txt")
 
 # returns path of chapter file
 print(test)
