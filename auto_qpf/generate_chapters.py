@@ -203,7 +203,7 @@ class ChapterGenerator:
                 l_tag = tag.replace("_", ":")[:-3]
                 r_tag = tag[-3:]
                 new_tag = f"{l_tag}.{r_tag}"
-                value = chapter_dict[tag]
+                value = str(chapter_dict[tag]).split(":")[1]
                 chapt_out.write(f"CHAPTER{num}={new_tag}\nCHAPTER{num}NAME={value}\n")
 
         if output_path.is_file():
