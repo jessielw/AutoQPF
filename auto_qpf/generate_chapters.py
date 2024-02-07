@@ -12,7 +12,7 @@ class ChapterGenerator:
         self,
         media_info_obj: MediaInfo,
         output_path: Path,
-        chapter_chunks: float = 12.0,
+        chapter_chunks: float = 5.0,
         extract_tagged: bool = True,
         extract_named: bool = True,
         extract_numbered: bool = True,
@@ -29,7 +29,7 @@ class ChapterGenerator:
             media_info_obj (MediaInfo): MediaInfo.parse() object.
             output_path (Path): Output path for the *.txt chapter file.
             chapter_chunks (float): Chunks to create chapters automatically in percentage.
-            Defaults to 12.0.
+            Defaults to 5.0.
             If a movie is an hour and a half long this would give you chapters about every 11 minutes.
             extract_tagged (bool, optional): If tagged chapters are accepted and the input has them extract those.
             Defaults to True.
@@ -129,15 +129,19 @@ class ChapterGenerator:
                 return ChapterType.NAMED, menu[0]
 
     def _generate_chapters(self, media_info: MediaInfo, chapter_chunks: float):
-        duration = (
-            int(media_info.general_tracks[0].duration) / 1000
-        )  # Convert ms to seconds
-        chapter_duration = duration / chapter_chunks
+        duration_ms = int(media_info.general_tracks[0].duration) / 1000
+
+        # Calculate the duration for each chapter
+        chunk_percentage = chapter_chunks / 100
+        chapter_interval = duration_ms * chunk_percentage
 
         chapter_dict = {1: "00:00:00.000"}
 
-        for i in range(2, int(chapter_chunks) + 1):
-            chapter_seconds = i * chapter_duration
+        # Calculate the number of chapters based on the chunk percentage
+        num_chapters = int(1 / chunk_percentage)
+
+        for i in range(2, num_chapters + 1):
+            chapter_seconds = i * chapter_interval
             formatted_time = self._convert_to_time_format(chapter_seconds)
             # Round the seconds part to 3 decimal places
             formatted_time = ":".join(
@@ -203,7 +207,11 @@ class ChapterGenerator:
                 l_tag = tag.replace("_", ":")[:-3]
                 r_tag = tag[-3:]
                 new_tag = f"{l_tag}.{r_tag}"
-                value = str(chapter_dict[tag]).split(":")[1]
+                value = str(chapter_dict[tag])
+                if ":" in value:
+                    split_str = value.split("1")
+                    if len(split_str) > 1:
+                        value = value.split(":")[1]
                 chapt_out.write(f"CHAPTER{num}={new_tag}\nCHAPTER{num}NAME={value}\n")
 
         if output_path.is_file():
