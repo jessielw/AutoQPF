@@ -27,6 +27,7 @@ class QpfGenerator:
         fps: Union[int, float] = 23.976,
         auto_detect_fps: bool = True,
         generate_chapters: bool = True,
+        generated_chapter_chunks: float = 5.0,
     ):
         """Creates chapter QPF and returns the path to the output file.
 
@@ -40,6 +41,8 @@ class QpfGenerator:
             Defaults to True.
             generate_chapters (bool, optional): When enabled this will run a helper class to extract and/or generate new
             new chapters as needed to create a qpf code for.
+            generated_chapter_chunks (float, optional): Defaults to 5.0 (percentage of input duration), if chapters
+            are generated they will be generated every 'generated_chapter_chunks' percent.
         """
         # check if we're on a windows platform, if so check for long path support
         if platform.system() == "Windows":
@@ -76,6 +79,7 @@ class QpfGenerator:
                     media_info_obj=media_info,
                     extract_tagged=False,
                     output_path=txt_output,
+                    chapter_chunks=generated_chapter_chunks,
                 )
                 time_codes = self._get_time_codes_text(file_input)
             else:
