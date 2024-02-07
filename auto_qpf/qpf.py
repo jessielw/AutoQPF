@@ -55,6 +55,8 @@ class QpfGenerator:
         # auto generate file output if none was provided
         if not file_output:
             file_output = self._auto_output(file_input)
+        else:
+            file_output = Path(file_output)
 
         # check if input is a text file vs a media file
         if file_input.suffix == ".txt":
@@ -63,11 +65,13 @@ class QpfGenerator:
         else:
             media_info = MediaInfo.parse(file_input, parse_speed=0.1)
             detect_fps = self._get_fps(media_info)
-            
+
             if generate_chapters:
                 # generate new output with _chapters before the extension for txt files
-                txt_output = file_output.with_suffix("").with_name(file_output.stem + "_chapters.txt")
-                
+                txt_output = file_output.with_suffix("").with_name(
+                    file_output.stem + "_chapters.txt"
+                )
+
                 file_input = ChapterGenerator().generate_ogm_chapters(
                     media_info_obj=media_info,
                     extract_tagged=False,
