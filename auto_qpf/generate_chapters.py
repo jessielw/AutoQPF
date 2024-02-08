@@ -208,10 +208,8 @@ class ChapterGenerator:
                 r_tag = tag[-3:]
                 new_tag = f"{l_tag}.{r_tag}"
                 value = str(chapter_dict[tag])
-                if ":" in value:
-                    split_str = value.split("1")
-                    if len(split_str) > 1:
-                        value = value.split(":")[1]
+                if ":" in value[:4]:
+                    value = value.split(":", 1)[1]
                 chapt_out.write(f"CHAPTER{num}={new_tag}\nCHAPTER{num}NAME={value}\n")
 
         if output_path.is_file():
