@@ -209,7 +209,7 @@ class ChapterGenerator:
                 new_tag = f"{l_tag}.{r_tag}"
                 value = str(chapter_dict[tag])
                 if ":" in value:
-                    language_pattern = re.compile(r"[a-zA-Z]{2,3}:\s*")
+                    language_pattern = re.compile(r"^([a-zA-Z]{2,3}:(\s*)?){1,2}")
                     value = re.sub(language_pattern, "", value).strip()
                 chapt_out.write(f"CHAPTER{num}={new_tag}\nCHAPTER{num}NAME={value}\n")
 
