@@ -207,10 +207,8 @@ class ChapterGenerator:
                 l_tag = tag.replace("_", ":")[:-3]
                 r_tag = tag[-3:]
                 new_tag = f"{l_tag}.{r_tag}"
-                value = str(chapter_dict[tag])
-                if ":" in value:
-                    language_pattern = re.compile(r"^([a-zA-Z]{2,3}:(\s*)?){1,2}")
-                    value = re.sub(language_pattern, "", value).strip()
+                language_pattern = re.compile(r"^[ :;?!_-]*(([a-zA-Z]{2,3}:){1,2})*[ :;?!_-]*"gm)
+                value = re.sub(language_pattern, "", str(chapter_dict[tag])).strip()
                 chapt_out.write(f"CHAPTER{num}={new_tag}\nCHAPTER{num}NAME={value}\n")
 
         if output_path.is_file():
