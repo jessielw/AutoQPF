@@ -6,6 +6,14 @@ from pymediainfo import MediaInfo
 
 from auto_qpf.enums import ChapterType
 
+def replace_special_characters(text):
+    replacements = {
+        '“”': '"',
+        '‘’': "'",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
 
 class ChapterGenerator:
     def generate_ogm_chapters(
@@ -209,6 +217,10 @@ class ChapterGenerator:
                 new_tag = f"{l_tag}.{r_tag}"
                 language_pattern = re.compile(r"^[ :;?!_-]*(([a-zA-Z]{2,3}:){1,2})*[ :;?!_-]*")
                 value = re.sub(language_pattern, "", str(chapter_dict[tag])).strip()
+
+                # Replace special characters
+                value = replace_special_characters(value)
+
                 chapt_out.write(f"CHAPTER{num}={new_tag}\nCHAPTER{num}NAME={value}\n")
 
         if output_path.is_file():
