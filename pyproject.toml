@@ -1,0 +1,59 @@
+[project]
+name = "autoqpf"
+version = "0.2.5"
+description = "Automated qpf creator and additional utils"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["pymediainfo"]
+
+
+authors = [{ name = "jessielw" }]
+license = { file = "LICENSE" }
+keywords = [
+    "automatic",
+    "srt",
+    "ogm",
+    "x264",
+    "x265",
+    "chapter",
+    "txt",
+    "qpf",
+    "timecodes",
+    "qpfgenerator",
+    "framecodes",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+urls = { "Source" = "https://github.com/jessielw/AutoQPF", "Tracker" = "https://github.com/jessielw/AutoQPF/issues" }
+
+[tool.ruff]
+line-length = 88
+include = ["main.py", "auto_qpf/**/*.py"]
+
+[tool.ruff.lint]
+select = ["I"]
+
+[tool.basedpyright]
+include = ["auto_qpf"]
+typeCheckingMode = "standard"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["auto_qpf*"]
+
+[dependency-groups]
+dev = ["ruff"]
