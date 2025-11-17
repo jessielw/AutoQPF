@@ -1,6 +1,6 @@
 import re
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
 
 from pymediainfo import MediaInfo
 
@@ -8,6 +8,8 @@ from auto_qpf.enums import ChapterType
 
 
 class ChapterGenerator:
+    __slots__ = ()
+
     def generate_ogm_chapters(
         self,
         media_info_obj: MediaInfo,
@@ -16,6 +18,7 @@ class ChapterGenerator:
         extract_tagged: bool = True,
         extract_named: bool = True,
         extract_numbered: bool = True,
+        write_to_file: bool = True,
     ):
         """
         Detect rather or not input file has numbered, named, tagged chapters or no chapters.
@@ -37,6 +40,8 @@ class ChapterGenerator:
             Defaults to True.
             extract_numbered (bool, optional): If numbered chapters are accepted (in the correct format) and the input has them extract those.
             Defaults to True.
+            write_to_file (bool, optional): If True, writes to file and returns Path. If False, returns chapter content as string.
+            Defaults to True.
         """
 
         get_chapters = self._get_media_info_obj_chapters(media_info_obj)
@@ -47,54 +52,56 @@ class ChapterGenerator:
             if chapter_type[0] == ChapterType.NAMED:
                 if extract_named:
                     return self._extract_chapters(
-                        chapter_type[0], chapter_type[1], output_path
+                        chapter_type[0], chapter_type[1], output_path, write_to_file
                     )
                 elif not extract_named:
                     generate_chapters = self._generate_chapters(
                         media_info_obj, chapter_chunks
                     )
                     return self._write_new_numbered_chapters(
-                        generate_chapters, output_path
+                        generate_chapters, output_path, write_to_file
                     )
 
             if chapter_type[0] == ChapterType.NUMBERED:
                 if extract_numbered:
                     try:
                         return self._extract_chapters(
-                            chapter_type[0], chapter_type[1], output_path
+                            chapter_type[0], chapter_type[1], output_path, write_to_file
                         )
                     except IndexError:
                         generate_chapters = self._generate_chapters(
                             media_info_obj, chapter_chunks
                         )
                         return self._write_new_numbered_chapters(
-                            generate_chapters, output_path
+                            generate_chapters, output_path, write_to_file
                         )
                 elif not extract_numbered:
                     generate_chapters = self._generate_chapters(
                         media_info_obj, chapter_chunks
                     )
                     return self._write_new_numbered_chapters(
-                        generate_chapters, output_path
+                        generate_chapters, output_path, write_to_file
                     )
 
             if chapter_type[0] == ChapterType.TAGGED:
                 if extract_tagged:
                     return self._extract_chapters(
-                        chapter_type[0], chapter_type[1], output_path
+                        chapter_type[0], chapter_type[1], output_path, write_to_file
                     )
                 elif not extract_tagged:
                     generate_chapters = self._generate_chapters(
                         media_info_obj, chapter_chunks
                     )
                     return self._write_new_numbered_chapters(
-                        generate_chapters, output_path
+                        generate_chapters, output_path, write_to_file
                     )
 
         # if no chapters was detected
         elif not get_chapters:
             generate_chapters = self._generate_chapters(media_info_obj, chapter_chunks)
-            return self._write_new_numbered_chapters(generate_chapters, output_path)
+            return self._write_new_numbered_chapters(
+                generate_chapters, output_path, write_to_file
+            )
 
     def _determine_chapter_type(self, media_info_menu: dict):
         menu = self._get_menu_info_only(media_info_menu)
@@ -107,22 +114,26 @@ class ChapterGenerator:
         else:
             try:
                 # check for numbered chapters
-                chapters_start_numbered = re.search(
-                    r"chapter\s*(\d+)", menu_str, re.IGNORECASE
-                ).group(1)
-
-                chapters_end_numbered = re.search(
+                start_match = re.search(r"chapter\s*(\d+)", menu_str, re.IGNORECASE)
+                end_match = re.search(
                     r"chapter\s*(\d+)",
                     menu_str_reversed,
                     re.IGNORECASE,
-                ).group(1)
-
-                return (
-                    ChapterType.NUMBERED,
-                    menu[0],
-                    chapters_start_numbered,
-                    chapters_end_numbered,
                 )
+
+                if start_match and end_match:
+                    chapters_start_numbered = start_match.group(1)
+                    chapters_end_numbered = end_match.group(1)
+
+                    return (
+                        ChapterType.NUMBERED,
+                        menu[0],
+                        chapters_start_numbered,
+                        chapters_end_numbered,
+                    )
+                else:
+                    # if regex didn't match, treat as named chapters
+                    return ChapterType.NAMED, menu[0]
 
             # if chapters are not numbered assume Named (since we check for tagged chapters already)
             except AttributeError:
@@ -171,22 +182,35 @@ class ChapterGenerator:
         return chapter_dict, chapter_keys, chapter_values
 
     @staticmethod
-    def _write_new_numbered_chapters(chapter_dict: dict, output_path: Path):
+    def _write_new_numbered_chapters(
+        chapter_dict: dict, output_path: Path, write_to_file: bool = True
+    ):
         output_path = Path(output_path)
 
-        with open(output_path, "wt+", encoding="utf-8") as chapt_out:
-            for num, tag in enumerate(chapter_dict.keys(), start=1):
-                num = str(num).zfill(2)
-                tag = chapter_dict[tag]
+        lines = []
+        for num, tag in enumerate(chapter_dict.keys(), start=1):
+            num_str = str(num).zfill(2)
+            tag_time = chapter_dict[tag]
+            lines.append(
+                f"CHAPTER{num_str}={tag_time}\nCHAPTER{num_str}NAME=Chapter {num_str}\n"
+            )
 
-                chapt_out.write(f"CHAPTER{num}={tag}\nCHAPTER{num}NAME=Chapter {num}\n")
+        content = "".join(lines)
 
-        if output_path.is_file():
-            return output_path
+        if write_to_file:
+            with open(output_path, "wt+", encoding="utf-8") as chapt_out:
+                chapt_out.write(content)
+            if output_path.is_file():
+                return output_path
+        else:
+            return content
 
     @staticmethod
     def _extract_chapters(
-        chapter_type: ChapterType, chapter_dict: dict, output_path: Path
+        chapter_type: ChapterType,
+        chapter_dict: dict,
+        output_path: Path,
+        write_to_file: bool = True,
     ):
         output_path = Path(output_path)
 
@@ -201,18 +225,27 @@ class ChapterGenerator:
                 chapter_dict = new_chapter_dict
 
         # extract chapters
-        with open(output_path, "wt+", encoding="utf-8") as chapt_out:
-            for num, tag in enumerate(chapter_dict, start=1):
-                num = str(num).zfill(2)
-                l_tag = tag.replace("_", ":")[:-3]
-                r_tag = tag[-3:]
-                new_tag = f"{l_tag}.{r_tag}"
-                language_pattern = re.compile(r"^[ :;?!_-]*(([a-zA-Z]{2,3}:){1,2})*[ :;?!_-]*")
-                value = re.sub(language_pattern, "", str(chapter_dict[tag])).strip()
-                chapt_out.write(f"CHAPTER{num}={new_tag}\nCHAPTER{num}NAME={value}\n")
+        lines = []
+        for num, tag in enumerate(chapter_dict, start=1):
+            num_str = str(num).zfill(2)
+            l_tag = tag.replace("_", ":")[:-3]
+            r_tag = tag[-3:]
+            new_tag = f"{l_tag}.{r_tag}"
+            language_pattern = re.compile(
+                r"^[ :;?!_-]*(([a-zA-Z]{2,3}:){1,2})*[ :;?!_-]*"
+            )
+            value = re.sub(language_pattern, "", str(chapter_dict[tag])).strip()
+            lines.append(f"CHAPTER{num_str}={new_tag}\nCHAPTER{num_str}NAME={value}\n")
 
-        if output_path.is_file():
-            return output_path
+        content = "".join(lines)
+
+        if write_to_file:
+            with open(output_path, "wt+", encoding="utf-8") as chapt_out:
+                chapt_out.write(content)
+            if output_path.is_file():
+                return output_path
+        else:
+            return content
 
     @staticmethod
     def _convert_to_time_format(seconds):

@@ -1,15 +1,16 @@
-from pathlib import Path
-from pymediainfo import MediaInfo
-from typing import Union
 import platform
+from pathlib import Path
+from typing import Optional, Union
 
+from pymediainfo import MediaInfo
+
+from auto_qpf.generate_chapters import ChapterGenerator
 from auto_qpf.long_path import check_for_long_path
 from auto_qpf.qpf_exceptions import (
+    ChapterIndexError,
     ImproperChapterError,
     NoChapterDataError,
-    ChapterIndexError,
 )
-from auto_qpf.generate_chapters import ChapterGenerator
 
 
 class QpfGenerator:
@@ -22,7 +23,7 @@ class QpfGenerator:
     def generate_qpf(
         self,
         file_input: Union[Path, str],
-        file_output: Union[Path, str] = None,
+        file_output: Optional[Union[Path, str]] = None,
         write_to_disk: bool = True,
         fps: Union[int, float] = 23.976,
         auto_detect_fps: bool = True,
@@ -62,6 +63,7 @@ class QpfGenerator:
             file_output = Path(file_output)
 
         # check if input is a text file vs a media file
+        detect_fps = None
         if file_input.suffix == ".txt":
             auto_detect_fps = False
             time_codes = self._get_time_codes_text(file_input)
@@ -75,13 +77,17 @@ class QpfGenerator:
                     file_output.stem + "_chapters.txt"
                 )
 
-                file_input = ChapterGenerator().generate_ogm_chapters(
+                new_file = ChapterGenerator().generate_ogm_chapters(
                     media_info_obj=media_info,
                     extract_tagged=False,
                     output_path=txt_output,
                     chapter_chunks=generated_chapter_chunks,
                 )
-                time_codes = self._get_time_codes_text(file_input)
+                if not isinstance(new_file, Path):
+                    raise NoChapterDataError(
+                        "Chapter generation failed, cannot continue QPF generation."
+                    )
+                time_codes = self._get_time_codes_text(new_file)
             else:
                 time_codes = self._get_time_codes_media_file(media_info)
 
@@ -112,7 +118,7 @@ class QpfGenerator:
             converted_time_codes.append(convert_time)
         return converted_time_codes
 
-    def _get_time_codes_media_file(self, media_info: MediaInfo.parse):
+    def _get_time_codes_media_file(self, media_info: MediaInfo):
         time_code_list = []
         menu_stream_count = media_info.general_tracks[0].count_of_menu_streams
         if menu_stream_count and int(menu_stream_count) > 0:
@@ -157,7 +163,7 @@ class QpfGenerator:
         return time_code_list
 
     @staticmethod
-    def _get_fps(media_info: MediaInfo.parse):
+    def _get_fps(media_info: MediaInfo):
         fps = None
         video_track_count = media_info.general_tracks[0].count_of_video_streams
         if video_track_count and int(video_track_count) > 0:
