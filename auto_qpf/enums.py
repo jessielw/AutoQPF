@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class ChapterType(Enum):
-    NAMED = 0
-    NUMBERED = 1
-    TAGGED = 2
+    NAMED = auto()
+    NUMBERED = auto()
+    TAGGED = auto()
