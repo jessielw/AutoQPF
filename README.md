@@ -1,86 +1,122 @@
 # AutoQPF
 
-Generates QPF frame time codes to be used with x264/x265
+A Python library for generating QPF (QP file) frame time codes for use with x264/x265 encoders, with automatic chapter detection and generation.
 
-## Install
+## Installation
 
-`pip install AutoQPF`
+```bash
+pip install AutoQPF
+```
 
 ## Uninstall
 
-`pip uninstall AutoQPF`
+```bash
+pip uninstall AutoQPF
+```
 
-## Example of how to use AutoQPF
+---
+
+## Quick Start
+
+### Basic Usage
 
 ```python
-from auto_qpf.qpf import QpfGenerator, ChapterIndexError, ImproperChapterError, NoChapterDataError
+from auto_qpf.qpf import QpfGenerator
 
-# basic ##########################
-# media file (virtually any media file)
-qpf = QpfGenerator().generate_qpf(file_input="PATH TO FILE.mkv")
+# Generate QPF from a media file (supports virtually any media file)
+qpf = QpfGenerator().generate_qpf(file_input="path/to/file.mkv")
 
-# chapter file (ogm format)
-qpf = QpfGenerator().generate_qpf(file_input="PATH TO FILE.txt")
+# Generate QPF from a chapter file (OGM format)
+qpf = QpfGenerator().generate_qpf(file_input="path/to/chapters.txt")
+```
 
+### Error Handling
 
-# error handling ##################
+```python
+from auto_qpf.qpf import (
+    QpfGenerator,
+    ChapterIndexError,
+    ImproperChapterError,
+    NoChapterDataError
+)
+
 try:
-    qpf = QpfGenerator().generate_qpf(file_input="PATH TO FILE.mkv")
-
+    qpf = QpfGenerator().generate_qpf(file_input="path/to/file.mkv")
 except ChapterIndexError:
     print("Issue getting the correct index from the chapters")
-
 except ImproperChapterError:
     print("Input has improper or corrupted chapters")
-
 except NoChapterDataError:
     print("Input has no chapter data")
 ```
 
-## AutoQPF.generate_qpf() parameters
+---
 
-`file_input` Required, path of the input file
+## API Reference
 
-`file_output` Optional, can specify an output path, if one isn't will automatically create one based on the input
+### `QpfGenerator.generate_qpf()`
 
-`write_to_disk` Optional, True/False (default is True), if this is set to false the 'file_output' parameter will be ignored and a list of the converter chapter time codes will be returned
+Generate QPF frame time codes from media files or chapter files.
 
-`fps` Optional, this should be defined when using '.txt' (ogm) format. If it's a media file + has a video track we will automatically detect the FPS. Default is '23.976'
+#### Parameters
 
-`auto_detect_fps` Optional, True/False (default is True), this will over ride any user input if the file input is a media file
+| Parameter           | Type    | Default      | Description                                                                                                                |
+| ------------------- | ------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `file_input`        | `str`   | **Required** | Path to the input file (media or OGM chapter file)                                                                         |
+| `file_output`       | `str`   | `None`       | Output path for the QPF file. If not specified, automatically generated based on input                                     |
+| `write_to_disk`     | `bool`  | `True`       | If `False`, returns a list of converted chapter time codes instead of writing to disk (ignores `file_output`)              |
+| `fps`               | `float` | `23.976`     | Frame rate to use. Required when using `.txt` (OGM) format. Auto-detected for media files with video tracks                |
+| `auto_detect_fps`   | `bool`  | `True`       | Override user-provided FPS with auto-detected value from media file                                                        |
+| `generate_chapters` | `bool`  | `True`       | Automatically generate OGM chapter file alongside QPF, correcting improper chapter numbering and extracting named chapters |
 
-`generate_chapters` Optional, True/False (default is True), if enabled the program will automatically output write OGM chapters beside the QPF, correcting improper numbers parsed from source, creating numbered chapters if tagged, and extracting named directly while retaining the same time-codes that align with the QPF file.
+---
 
-_Generating chapters to text is done with a helper class, if you want to access this helper class and use it directly you can access it below..._
+### `ChapterGenerator.generate_ogm_chapters()`
 
-## ChapterGenerator.generate_ogm_chapters() parameters
+Generate or extract OGM-formatted chapter files from media.
 
-_At the moment this requires a MediaInfo.parse() object, in the future I might change it to also accept a file input as well_
+> **Note:** Currently requires a `MediaInfo.parse()` object. Future versions may support direct file input.
 
-`media_info_obj` A parsed pymediainfo object
+#### Parameters
 
-`output_path` The output path of the OGM chapters file (suffix must be .txt)
+| Parameter          | Type        | Default      | Description                                                                                        |
+| ------------------ | ----------- | ------------ | -------------------------------------------------------------------------------------------------- |
+| `media_info_obj`   | `MediaInfo` | **Required** | Parsed `pymediainfo` MediaInfo object                                                              |
+| `output_path`      | `Path`      | **Required** | Output path for the OGM chapters file (must have `.txt` suffix)                                    |
+| `chapter_chunks`   | `float`     | `5.0`        | Percentage of file duration per auto-generated chapter (e.g., `5.0` = chapter every 5% of runtime) |
+| `extract_tagged`   | `bool`      | `True`       | Extract detected tagged chapters from source                                                       |
+| `extract_named`    | `bool`      | `True`       | Extract detected named chapters from source                                                        |
+| `extract_numbered` | `bool`      | `True`       | Extract detected numbered chapters from source (validates correct format)                          |
+| `write_to_file`    | `bool`      | `True`       | If `False`, returns chapter content as string instead of writing to disk                           |
 
-`chapter_chunks` Optional, float (default is 12.0), this will make chapters for every 12% of the input file
+**Behavior:** If any `extract_*` parameter is set to `False` and that chapter type is detected, the program will automatically generate clean numbered chapters instead.
 
-`extract_tagged` Optional, bool (default is True), this will allow the extraction of detected tagged chapters
-
-`extract_named` Optional, bool (default is True), this will allow the extraction of detected named chapters
-
-`extract_numbered` Optional, bool (default is True), this will allow the extraction of detected numbered chapters
-
-If any of `extract_*` is set to false, when that chapter type is detected the program will generate clean numbered chapters to replace it automatically.
-
-## Example of how to use ChapterGenerator
+#### Example
 
 ```python
-from auto_qpf.qpf import ChapterGenerator
+from auto_qpf.generate_chapters import ChapterGenerator
 from pymediainfo import MediaInfo
 
-parse = MediaInfo.parse(r"file_input.mkv")
+media_info = MediaInfo.parse("path/to/file.mkv")
 
-test = ChapterGenerator().generate_ogm_chapters(media_info_obj=parse, output_path="chapter.txt")
+# Write chapter file to disk
+chapter_path = ChapterGenerator().generate_ogm_chapters(
+    media_info_obj=media_info,
+    output_path="chapters.txt"
+)
+print(f"Chapters written to: {chapter_path}")
 
-# returns path of chapter file
-print(test)
+# Get chapter content as string without writing
+chapter_content = ChapterGenerator().generate_ogm_chapters(
+    media_info_obj=media_info,
+    output_path="",  # Not used when write_to_file=False
+    write_to_file=False
+)
+print(chapter_content)
 ```
+
+---
+
+## License
+
+See [LICENSE](LICENSE) file for details.
