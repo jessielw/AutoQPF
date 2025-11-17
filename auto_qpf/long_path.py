@@ -11,7 +11,7 @@ def check_for_long_path():
         def are_long_paths_enabled():
             return bool(ntdll.RtlAreLongPathsEnabled())
 
-        # Call the function to determine if long paths are enabled
+        # call the function to determine if long paths are enabled
         return are_long_paths_enabled()
 
     else:
